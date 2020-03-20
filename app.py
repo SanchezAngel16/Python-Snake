@@ -7,6 +7,7 @@ s_height = 400
 block_size = 10
 
 win = pygame.display.set_mode((s_width, s_height))
+pygame.font.init()
 
 class Food(object):
     def __init__(self, pos):
@@ -25,25 +26,31 @@ class Snake(object):
         self.body = [()]
         self.dx = 1
         self.dy = 0
+        self.living = True
+        self.score = 0
 
     def move(self, food):
-
-        self.body.append((self.headx, self.heady))
-
-        self.headx += self.dx * block_size
-        self.heady += self.dy * block_size
         
-        self.body.pop(0)
-
+        new_pos_x = self.headx + (self.dx * block_size)
+        new_pos_y = self.heady + (self.dy * block_size)
+        if new_pos_x > (s_width-block_size) or new_pos_x < (0+block_size) or new_pos_y > (s_height-block_size) or new_pos_y < (0+block_size):
+            self.living = False
+        
+        self.headx = new_pos_x
+        self.heady = new_pos_y
+        
         if self.headx == food.pos[0] and self.heady == food.pos[1]:
             food.change_pos(generate_food())
-            self.body.append((self.headx, self.heady))
+            self.score += 10
+        else:
+            self.body.pop(0)
 
         for item in self.body:
             if self.headx == item[0] and self.heady == item[1]:
-                pass
+                self.living = False
             pygame.draw.rect(win, (255,255,255), (item[0]-1,item[1]-1, block_size-1, block_size-1), 0)
-            
+
+        self.body.append((self.headx, self.heady))
 
         pygame.draw.rect(win, (255,255,255), (self.headx-1, self.heady-1, block_size-1, block_size-1), 0)
         pygame.display.flip()
@@ -58,7 +65,6 @@ def main():
 
     snake = Snake(10,10)
     food = Food(generate_food())
-    print(food.pos)
     move_time = 0
     move_speed = 0.05
     
@@ -70,8 +76,16 @@ def main():
         if move_time / 1000 > move_speed:
             win.fill((0,0,0))
             move_time = 0
-            snake.move(food)
-            food.draw()
+            if snake.living:
+                snake.move(food)
+                food.draw()
+            else:
+                font = pygame.font.SysFont('comicsans', 25)
+                game_over_text = font.render("Press R to restart or Q to Quit", 1, (255,255,255))
+                final_score = font.render("Score: " + str(snake.score), 1, (255,255,255))
+                win.blit(game_over_text, ((s_width/2) - 120,(s_height/2) - 30))
+                win.blit(final_score, ((s_width/2) - 120,(s_height/2) - 10))
+
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -90,6 +104,12 @@ def main():
                 if event.key == pygame.K_UP and snake.dy != 1:
                     snake.dy = -1
                     snake.dx = 0
+                if event.key == pygame.K_r and not(snake.living):
+                    snake = Snake(10,10)
+                    food = Food(generate_food())
+                    snake.living = True
+                if event.key == pygame.K_q and not(snake.living):
+                    pygame.display.quit()
         pygame.display.update()
     
     pygame.display.quit()
